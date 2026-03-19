@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA → Code: The Helix Decoder</title>
+<meta name="description" content="An interactive visualization where a DNA double helix scrolls upward and morphs into lines of code — biology meets programming in a neon-lit canvas animation.">
+<meta name="author" content="Helix Decoder">
+<meta name="theme-color" content="#05050f">
+
+<!-- Open Graph -->
+<meta property="og:title" content="DNA → Code: The Helix Decoder">
+<meta property="og:description" content="Watch a DNA double helix decode into source code in real time. A mesmerizing neon canvas animation.">
+<meta property="og:type" content="website">
+
+<!-- Favicon (inline SVG) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>">
+
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #05050f;
+    font-family: 'Courier New', 'Fira Mono', monospace;
+    overflow-x: hidden;
+    min-height: 100vh;
+    color: #c0d0e0;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────── */
+  header {
+    text-align: center;
+    padding: 36px 20px 10px;
+    position: relative;
+    z-index: 10;
+  }
+  header h1 {
+    font-size: clamp(20px, 3.5vw, 32px);
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #00ffc8, #ff6ec7, #7c6fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    margin-top: 8px;
+    font-size: clamp(11px, 1.4vw, 13px);
+    color: rgba(0,255,200,0.3);
+    letter-spacing: 3px;
+  }
+
+  /* ── Main container ──────────────────────────────────────────────── */
+  #stage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px 12px 40px;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  #viz-wrapper {
+    display: flex;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow:
+      0 0 60px rgba(0,255,200,0.06),
+      0 0 120px rgba(255,110,199,0.04),
+      0 4px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,255,200,0.07);
+    max-width: 100%;
+  }
+
+  canvas {
+    display: block;
+    background: #05050f;
+  }
+
+  /* ── Code panel ──────────────────────────────────────────────────── */
+  #code-panel {
+    width: 380px;
+    height: 800px;
+    background: linear-gradient(180deg, #08081a 0%, #0a0a20 50%, #08081a 100%);
+    border-left: 1px solid rgba(0,255,200,0.08);
+    padding: 20px 16px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  #code-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(to bottom, #08081a, transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  #code-panel::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to top, #08081a, transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  #panel-title {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(0,255,200,0.35);
+    margin-bottom: 16px;
+    text-align: center;
+    position: relative;
+    z-index: 3;
+  }
+
+  #code-lines {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .code-line {
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    text-shadow: 0 0 6px currentColor;
+  }
+
+  .code-line.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .code-line.fading {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  .line-number {
+    color: rgba(100,120,150,0.35);
+    display: inline-block;
+    width: 32px;
+    text-align: right;
+    margin-right: 12px;
+    user-select: none;
+    font-size: 10px;
+  }
+
+  .keyword  { color: #ff6ec7; }
+  .type     { color: #00e5ff; }
+  .string   { color: #7cff6b; }
+  .comment  { color: #5a6a8a; font-style: italic; }
+  .func     { color: #ffda44; }
+  .operator { color: #ff9e64; }
+  .number   { color: #bd93f9; }
+  .bracket  { color: #8899aa; }
+  .variable { color: #00ffc8; }
+  .plain    { color: #c0d0e0; }
+
+  /* ── Footer ──────────────────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: rgba(100,120,150,0.3);
+    letter-spacing: 2px;
+  }
+  footer a {
+    color: rgba(0,255,200,0.35);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  footer a:hover { color: #00ffc8; }
+
+  /* ── Controls bar ────────────────────────────────────────────────── */
+  #controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 20px 0;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    background: rgba(0,255,200,0.06);
+    border: 1px solid rgba(0,255,200,0.12);
+    color: rgba(0,255,200,0.5);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+  }
+  .ctrl-btn:hover {
+    background: rgba(0,255,200,0.12);
+    color: #00ffc8;
+    border-color: rgba(0,255,200,0.3);
+    box-shadow: 0 0 16px rgba(0,255,200,0.1);
+  }
+  .ctrl-btn.active {
+    background: rgba(0,255,200,0.15);
+    color: #00ffc8;
+    border-color: rgba(0,255,200,0.4);
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────── */
+  @media (max-width: 1220px) {
+    #code-panel { width: 320px; }
+  }
+
+  @media (max-width: 1050px) {
+    canvas { width: 600px !important; height: 600px !important; }
+    #code-panel { width: 300px; height: 600px; }
+  }
+
+  @media (max-width: 780px) {
+    #viz-wrapper { flex-direction: column; }
+    canvas { width: 100% !important; height: auto !important; }
+    #code-panel {
+      width: 100%;
+      height: 300px;
+      border-left: none;
+      border-top: 1px solid rgba(0,255,200,0.08);
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DNA &rarr; Code</h1>
+  <p>the helix decoder</p>
+</header>
+
+<div id="controls">
+  <button class="ctrl-btn active" id="btn-play" onclick="togglePause()">&#9654; Running</button>
+  <button class="ctrl-btn" id="btn-speed" onclick="cycleSpeed()">Speed: 1&times;</button>
+  <button class="ctrl-btn" id="btn-glow" onclick="toggleGlow()">Glow: On</button>
+</div>
+
+<div id="stage">
+  <div id="viz-wrapper">
+    <canvas id="helix" width="800" height="800"></canvas>
+    <div id="code-panel">
+      <div id="panel-title">&#x276E; decoded output &#x276F;</div>
+      <div id="code-lines"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built with &lt;canvas&gt; and curiosity &mdash;
+  <a href="https://github.com" target="_blank" rel="noopener">view source</a>
+</footer>
+
+<script>
+// ─── Configuration ───────────────────────────────────────────────────
+const CVS  = document.getElementById('helix');
+const CTX  = CVS.getContext('2d');
+const W    = CVS.width;
+const H    = CVS.height;
+const PANEL = document.getElementById('code-lines');
+
+const DECODE_Y      = H * 0.38;
+const HELIX_CX      = W * 0.48;
+const HELIX_RADIUS  = 130;
+const RUNG_SPACING  = 38;
+const TOTAL_RUNGS   = 40;
+const BASE_SPEED    = 0.45;
+const TWIST_RATE    = 0.09;
+
+let SCROLL_SPEED = BASE_SPEED;
+let paused       = false;
+let glowEnabled  = true;
+let speedMultiplier = 1;
+
+// Neon palette
+const NEON = {
+  strand1:  '#00ffc8',
+  strand2:  '#ff6ec7',
+  rung:     '#5e60ce',
+  glow1:    'rgba(0,255,200,0.35)',
+  glow2:    'rgba(255,110,199,0.35)',
+  particle: ['#00ffc8','#ff6ec7','#7c6fff','#ffda44','#00e5ff'],
+};
+
+// ─── Controls ────────────────────────────────────────────────────────
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('btn-play');
+  btn.textContent = paused ? '\u23F8 Paused' : '\u25B6 Running';
+  btn.classList.toggle('active', !paused);
+}
+
+function cycleSpeed() {
+  const speeds = [1, 2, 3, 0.5];
+  const idx = speeds.indexOf(speedMultiplier);
+  speedMultiplier = speeds[(idx + 1) % speeds.length];
+  SCROLL_SPEED = BASE_SPEED * speedMultiplier;
+  document.getElementById('btn-speed').textContent = `Speed: ${speedMultiplier}\u00D7`;
+}
+
+function toggleGlow() {
+  glowEnabled = !glowEnabled;
+  const btn = document.getElementById('btn-glow');
+  btn.textContent = glowEnabled ? 'Glow: On' : 'Glow: Off';
+  btn.classList.toggle('active', glowEnabled);
+}
+
+// ─── Code snippets ───────────────────────────────────────────────────
+const CODE_SNIPPETS = [
+  `<span class="comment">// genome.rs — sequence decoder</span>`,
+  `<span class="keyword">use</span> <span class="type">bio::seq</span>::<span class="bracket">{</span><span class="type">Nucleotide</span>, <span class="type">Strand</span><span class="bracket">}</span>;`,
+  ``,
+  `<span class="keyword">pub fn</span> <span class="func">decode_helix</span><span class="bracket">(</span><span class="variable">strand</span>: &<span class="type">Strand</span><span class="bracket">)</span> <span class="operator">-></span> <span class="type">Vec</span><span class="operator">&lt;</span><span class="type">AminoAcid</span><span class="operator">&gt;</span> <span class="bracket">{</span>`,
+  `    <span class="keyword">let mut</span> <span class="variable">codons</span> <span class="operator">=</span> <span class="type">Vec</span>::<span class="func">new</span><span class="bracket">()</span>;`,
+  `    <span class="keyword">for</span> <span class="variable">triplet</span> <span class="keyword">in</span> <span class="variable">strand</span>.<span class="func">chunks</span><span class="bracket">(</span><span class="number">3</span><span class="bracket">)</span> <span class="bracket">{</span>`,
+  `        <span class="keyword">match</span> <span class="func">translate</span><span class="bracket">(</span><span class="variable">triplet</span><span class="bracket">)</span> <span class="bracket">{</span>`,
+  `            <span class="type">Some</span><span class="bracket">(</span><span class="variable">aa</span><span class="bracket">)</span> <span class="operator">=></span> <span class="variable">codons</span>.<span class="func">push</span><span class="bracket">(</span><span class="variable">aa</span><span class="bracket">)</span>,`,
+  `            <span class="type">None</span> <span class="operator">=></span> <span class="keyword">break</span>,`,
+  `        <span class="bracket">}</span>`,
+  `    <span class="bracket">}</span>`,
+  `    <span class="variable">codons</span>`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="comment">// transcription pipeline</span>`,
+  `<span class="keyword">fn</span> <span class="func">transcribe</span><span class="bracket">(</span><span class="variable">dna</span>: &<span class="type">Helix</span><span class="bracket">)</span> <span class="operator">-></span> <span class="type">mRNA</span> <span class="bracket">{</span>`,
+  `    <span class="variable">dna</span>.<span class="func">unwind</span><span class="bracket">()</span>`,
+  `       .<span class="func">read_template</span><span class="bracket">()</span>`,
+  `       .<span class="func">polymerase</span><span class="bracket">(</span><span class="type">RNAPol::II</span><span class="bracket">)</span>`,
+  `       .<span class="func">cap_and_tail</span><span class="bracket">()</span>`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="comment">// base-pair bonding constants</span>`,
+  `<span class="keyword">const</span> <span class="variable">ADENINE_THYMINE</span>: <span class="type">f64</span> <span class="operator">=</span> <span class="number">2.0</span>;  <span class="comment">// H-bonds</span>`,
+  `<span class="keyword">const</span> <span class="variable">GUANINE_CYTOSINE</span>: <span class="type">f64</span> <span class="operator">=</span> <span class="number">3.0</span>;`,
+  ``,
+  `<span class="keyword">struct</span> <span class="type">Ribosome</span> <span class="bracket">{</span>`,
+  `    <span class="variable">position</span>: <span class="type">usize</span>,`,
+  `    <span class="variable">chain</span>: <span class="type">Vec</span><span class="operator">&lt;</span><span class="type">AminoAcid</span><span class="operator">&gt;</span>,`,
+  `    <span class="variable">active</span>: <span class="type">bool</span>,`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="keyword">impl</span> <span class="type">Ribosome</span> <span class="bracket">{</span>`,
+  `    <span class="keyword">fn</span> <span class="func">elongate</span><span class="bracket">(</span>&<span class="keyword">mut</span> <span class="variable">self</span>, <span class="variable">trna</span>: <span class="type">tRNA</span><span class="bracket">)</span> <span class="bracket">{</span>`,
+  `        <span class="keyword">if</span> <span class="variable">self</span>.<span class="variable">active</span> <span class="bracket">{</span>`,
+  `            <span class="variable">self</span>.<span class="variable">chain</span>.<span class="func">push</span><span class="bracket">(</span><span class="variable">trna</span>.<span class="func">amino</span><span class="bracket">())</span>;`,
+  `            <span class="variable">self</span>.<span class="variable">position</span> <span class="operator">+=</span> <span class="number">3</span>;`,
+  `        <span class="bracket">}</span>`,
+  `    <span class="bracket">}</span>`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="comment">// splicing introns from pre-mRNA</span>`,
+  `<span class="keyword">fn</span> <span class="func">splice</span><span class="bracket">(</span><span class="variable">pre</span>: <span class="type">PreMRNA</span><span class="bracket">)</span> <span class="operator">-></span> <span class="type">MatureMRNA</span> <span class="bracket">{</span>`,
+  `    <span class="variable">pre</span>.<span class="func">exons</span><span class="bracket">()</span>.<span class="func">join</span><span class="bracket">()</span>.<span class="func">into</span><span class="bracket">()</span>`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="keyword">fn</span> <span class="func">main</span><span class="bracket">()</span> <span class="bracket">{</span>`,
+  `    <span class="keyword">let</span> <span class="variable">genome</span> <span class="operator">=</span> <span class="type">Helix</span>::<span class="func">from_file</span><span class="bracket">(</span><span class="string">"chr17.fa"</span><span class="bracket">)</span>;`,
+  `    <span class="keyword">let</span> <span class="variable">mrna</span> <span class="operator">=</span> <span class="func">transcribe</span><span class="bracket">(</span>&<span class="variable">genome</span><span class="bracket">)</span>;`,
+  `    <span class="keyword">let</span> <span class="variable">protein</span> <span class="operator">=</span> <span class="func">decode_helix</span><span class="bracket">(</span>&<span class="variable">mrna</span><span class="bracket">)</span>;`,
+  `    <span class="func">println!</span><span class="bracket">(</span><span class="string">"Protein: {:?}"</span>, <span class="variable">protein</span><span class="bracket">)</span>;`,
+  `<span class="bracket">}</span>`,
+  ``,
+  `<span class="comment">// mutation detection module</span>`,
+  `<span class="keyword">fn</span> <span class="func">detect_snp</span><span class="bracket">(</span><span class="variable">ref_seq</span>: &<span class="type">Strand</span>, <span class="variable">sample</span>: &<span class="type">Strand</span><span class="bracket">)</span> <span class="bracket">{</span>`,
+  `    <span class="keyword">for</span> <span class="bracket">(</span><span class="variable">i</span>, <span class="bracket">(</span><span class="variable">r</span>, <span class="variable">s</span><span class="bracket">))</span> <span class="keyword">in</span> <span class="variable">ref_seq</span>.<span class="func">zip</span><span class="bracket">(</span><span class="variable">sample</span><span class="bracket">)</span>.<span class="func">enumerate</span><span class="bracket">()</span> <span class="bracket">{</span>`,
+  `        <span class="keyword">if</span> <span class="variable">r</span> <span class="operator">!=</span> <span class="variable">s</span> <span class="bracket">{</span>`,
+  `            <span class="func">report_variant</span><span class="bracket">(</span><span class="variable">i</span>, <span class="variable">r</span>, <span class="variable">s</span><span class="bracket">)</span>;`,
+  `        <span class="bracket">}</span>`,
+  `    <span class="bracket">}</span>`,
+  `<span class="bracket">}</span>`,
+];
+
+// ─── State ───────────────────────────────────────────────────────────
+let scrollOffset  = 0;
+let codeIndex     = 0;
+let particles     = [];
+let decodedLines  = [];
+let rungCounter   = 0;
+
+// ─── Particles ───────────────────────────────────────────────────────
+function spawnParticles(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4 - 1.5,
+      life: 1,
+      decay: 0.015 + Math.random() * 0.025,
+      size: 1 + Math.random() * 2.5,
+      color: NEON.particle[Math.floor(Math.random() * NEON.particle.length)],
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    CTX.save();
+    CTX.globalAlpha = p.life;
+    if (glowEnabled) { CTX.shadowColor = p.color; CTX.shadowBlur = 10; }
+    CTX.fillStyle = p.color;
+    CTX.beginPath();
+    CTX.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    CTX.fill();
+    CTX.restore();
+  }
+}
+
+// ─── Decode line into panel ──────────────────────────────────────────
+function emitCodeLine() {
+  if (codeIndex >= CODE_SNIPPETS.length) codeIndex = 0;
+  const line = CODE_SNIPPETS[codeIndex++];
+
+  const el = document.createElement('div');
+  el.className = 'code-line';
+  el.innerHTML = `<span class="line-number">${codeIndex}</span>${line}`;
+  PANEL.appendChild(el);
+
+  requestAnimationFrame(() => { el.classList.add('visible'); });
+
+  decodedLines.push({ el, birth: performance.now() });
+
+  while (decodedLines.length > 28) {
+    const old = decodedLines.shift();
+    old.el.classList.remove('visible');
+    old.el.classList.add('fading');
+    setTimeout(() => old.el.remove(), 600);
+  }
+}
+
+// ─── Draw helpers ────────────────────────────────────────────────────
+function drawDecodeLine() {
+  const grad = CTX.createLinearGradient(0, DECODE_Y, W, DECODE_Y);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(0.2, 'rgba(0,255,200,0.15)');
+  grad.addColorStop(0.5, 'rgba(0,255,200,0.4)');
+  grad.addColorStop(0.8, 'rgba(0,255,200,0.15)');
+  grad.addColorStop(1, 'transparent');
+
+  CTX.save();
+  CTX.strokeStyle = grad;
+  CTX.lineWidth = 1.5;
+  CTX.setLineDash([6, 8]);
+  CTX.beginPath();
+  CTX.moveTo(0, DECODE_Y);
+  CTX.lineTo(W, DECODE_Y);
+  CTX.stroke();
+  CTX.setLineDash([]);
+  CTX.restore();
+
+  CTX.save();
+  CTX.font = '10px "Courier New", monospace';
+  CTX.fillStyle = 'rgba(0,255,200,0.3)';
+  CTX.textAlign = 'right';
+  CTX.fillText('DECODE \u25B8', W - 16, DECODE_Y - 6);
+  CTX.restore();
+}
+
+function drawBackground() {
+  CTX.fillStyle = '#05050f';
+  CTX.fillRect(0, 0, W, H);
+
+  CTX.save();
+  CTX.strokeStyle = 'rgba(30,40,80,0.18)';
+  CTX.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 40) {
+    CTX.beginPath(); CTX.moveTo(x, 0); CTX.lineTo(x, H); CTX.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    CTX.beginPath(); CTX.moveTo(0, y); CTX.lineTo(W, y); CTX.stroke();
+  }
+  CTX.restore();
+
+  const vig = CTX.createRadialGradient(HELIX_CX, H / 2, 100, HELIX_CX, H / 2, 500);
+  vig.addColorStop(0, 'transparent');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  CTX.fillStyle = vig;
+  CTX.fillRect(0, 0, W, H);
+}
+
+// ─── Main helix drawing ─────────────────────────────────────────────
+function drawHelix(time) {
+  const backRungs  = [];
+  const frontRungs = [];
+
+  for (let i = 0; i < TOTAL_RUNGS; i++) {
+    const baseY = i * RUNG_SPACING - scrollOffset % RUNG_SPACING + H + RUNG_SPACING;
+    const y = baseY - (TOTAL_RUNGS * RUNG_SPACING * 0.5);
+    if (y < -50 || y > H + 50) continue;
+
+    const phase = (i * TWIST_RATE) + (scrollOffset * 0.008) + time * 0.0004;
+    const cos   = Math.cos(phase);
+    const sin   = Math.sin(phase);
+    const x1 = HELIX_CX + cos * HELIX_RADIUS;
+    const x2 = HELIX_CX - cos * HELIX_RADIUS;
+    const depth1 = (sin + 1) / 2;
+    const rung = { y, x1, x2, depth1, phase, cos, sin, index: i };
+
+    if (sin >= 0) backRungs.push(rung);
+    else frontRungs.push(rung);
+  }
+
+  backRungs.sort((a, b) => a.depth1 - b.depth1);
+  frontRungs.sort((a, b) => b.depth1 - a.depth1);
+
+  drawStrandHalf(backRungs, 0.3);
+  for (const r of backRungs) drawRung(r, time);
+  drawStrandHalf(frontRungs, 1.0);
+  for (const r of frontRungs) drawRung(r, time);
+}
+
+function drawStrandHalf(rungs, alphaMultiplier) {
+  if (rungs.length < 2) return;
+
+  for (const [xKey, col, gcol] of [['x1', NEON.strand1, NEON.glow1], ['x2', NEON.strand2, NEON.glow2]]) {
+    CTX.save();
+    CTX.globalAlpha = alphaMultiplier;
+    if (glowEnabled) { CTX.shadowColor = gcol; CTX.shadowBlur = 20; }
+    CTX.strokeStyle = col;
+    CTX.lineWidth = 3;
+    CTX.beginPath();
+    for (let i = 0; i < rungs.length; i++) {
+      const r = rungs[i];
+      if (i === 0) CTX.moveTo(r[xKey], r.y);
+      else CTX.lineTo(r[xKey], r.y);
+    }
+    CTX.stroke();
+    CTX.restore();
+  }
+}
+
+function drawRung(r, time) {
+  const proximity = 1 - Math.min(Math.abs(r.y - DECODE_Y) / 120, 1);
+  const brightness = 0.25 + proximity * 0.75;
+  const rungAlpha = 0.3 + Math.abs(r.cos) * 0.5;
+
+  // Rung line
+  CTX.save();
+  CTX.globalAlpha = rungAlpha * brightness;
+  const rGrad = CTX.createLinearGradient(r.x1, r.y, r.x2, r.y);
+  rGrad.addColorStop(0, NEON.strand1);
+  rGrad.addColorStop(0.5, NEON.rung);
+  rGrad.addColorStop(1, NEON.strand2);
+  if (glowEnabled) { CTX.shadowColor = 'rgba(94,96,206,0.5)'; CTX.shadowBlur = 8 + proximity * 12; }
+  CTX.strokeStyle = rGrad;
+  CTX.lineWidth = 1.5 + proximity * 1.5;
+  CTX.beginPath();
+  CTX.moveTo(r.x1, r.y);
+  CTX.lineTo(r.x2, r.y);
+  CTX.stroke();
+  CTX.restore();
+
+  // Base-pair letters
+  const bases = ['A\u2014T', 'G\u2014C', 'T\u2014A', 'C\u2014G'];
+  const pair = bases[r.index % bases.length];
+  CTX.save();
+  CTX.globalAlpha = rungAlpha * brightness * 0.7;
+  CTX.font = `bold ${10 + proximity * 3}px "Courier New", monospace`;
+  CTX.fillStyle = `rgba(200,210,255,${0.4 + proximity * 0.5})`;
+  CTX.textAlign = 'center';
+  if (glowEnabled) { CTX.shadowColor = NEON.rung; CTX.shadowBlur = 6; }
+  CTX.fillText(pair, HELIX_CX, r.y + 4);
+  CTX.restore();
+
+  // Nodes at strand endpoints
+  for (const [nx, col, gcol] of [[r.x1, NEON.strand1, NEON.glow1], [r.x2, NEON.strand2, NEON.glow2]]) {
+    CTX.save();
+    if (glowEnabled) { CTX.shadowColor = gcol; CTX.shadowBlur = 12 + proximity * 10; }
+    CTX.fillStyle = col;
+    CTX.globalAlpha = 0.6 + proximity * 0.4;
+    CTX.beginPath();
+    CTX.arc(nx, r.y, 3 + proximity * 2, 0, Math.PI * 2);
+    CTX.fill();
+    CTX.restore();
+  }
+
+  // Energy beam at decode threshold
+  if (proximity > 0.85) {
+    const beamAlpha = (proximity - 0.85) / 0.15;
+    CTX.save();
+    CTX.globalAlpha = beamAlpha * 0.3;
+    const bGrad = CTX.createLinearGradient(Math.max(r.x1, r.x2), r.y, W, r.y);
+    bGrad.addColorStop(0, NEON.strand1);
+    bGrad.addColorStop(0.6, 'rgba(0,255,200,0.1)');
+    bGrad.addColorStop(1, 'transparent');
+    CTX.strokeStyle = bGrad;
+    CTX.lineWidth = 1;
+    if (glowEnabled) { CTX.shadowColor = NEON.strand1; CTX.shadowBlur = 8; }
+    CTX.beginPath();
+    CTX.moveTo(Math.max(r.x1, r.x2) + 10, r.y);
+    CTX.lineTo(W, r.y);
+    CTX.stroke();
+    CTX.restore();
+  }
+}
+
+// ─── Floating DNA letters ────────────────────────────────────────────
+const floatingLetters = [];
+for (let i = 0; i < 30; i++) {
+  floatingLetters.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    char: 'ATGC'[Math.floor(Math.random() * 4)],
+    speed: 0.15 + Math.random() * 0.35,
+    alpha: 0.03 + Math.random() * 0.06,
+    size: 12 + Math.random() * 18,
+  });
+}
+
+function drawFloatingLetters() {
+  CTX.save();
+  for (const l of floatingLetters) {
+    l.y -= l.speed;
+    if (l.y < -20) { l.y = H + 20; l.x = Math.random() * W; }
+    CTX.globalAlpha = l.alpha;
+    CTX.fillStyle = '#4060a0';
+    CTX.font = `${l.size}px "Courier New", monospace`;
+    CTX.fillText(l.char, l.x, l.y);
+  }
+  CTX.restore();
+}
+
+// ─── Animation loop ──────────────────────────────────────────────────
+let lastTime = 0;
+
+function animate(time) {
+  if (!lastTime) lastTime = time;
+  const dt = time - lastTime;
+  lastTime = time;
+
+  if (!paused) {
+    scrollOffset += SCROLL_SPEED * (dt / 16);
+
+    const rungsCrossed = Math.floor(scrollOffset / RUNG_SPACING);
+    if (rungsCrossed > rungCounter) {
+      const diff = rungsCrossed - rungCounter;
+      for (let d = 0; d < diff; d++) {
+        emitCodeLine();
+        const phase = ((rungCounter + d) * TWIST_RATE) + (scrollOffset * 0.008);
+        const cx = HELIX_CX + Math.cos(phase) * HELIX_RADIUS;
+        spawnParticles(cx, DECODE_Y, 8);
+        spawnParticles(HELIX_CX - Math.cos(phase) * HELIX_RADIUS, DECODE_Y, 8);
+      }
+      rungCounter = rungsCrossed;
+    }
+  }
+
+  drawBackground();
+  drawFloatingLetters();
+  drawDecodeLine();
+  drawHelix(time);
+  updateParticles();
+  drawParticles();
+
+  // Title overlay
+  CTX.save();
+  CTX.font = 'bold 13px "Courier New", monospace';
+  CTX.fillStyle = 'rgba(0,255,200,0.18)';
+  CTX.textAlign = 'left';
+  CTX.fillText('DNA \u2192 CODE', 20, 30);
+  CTX.font = '10px "Courier New", monospace';
+  CTX.fillStyle = 'rgba(0,255,200,0.12)';
+  CTX.fillText('the helix decoder', 20, 46);
+  CTX.restore();
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
