@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { purchaseNote, downloadNote } from "@/app/actions/purchases";
 import { getSessionProfile } from "@/lib/auth";
 import { attachSellers } from "@/lib/notes";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatPrice, type Note } from "@/lib/types";
 
@@ -16,6 +17,8 @@ export default async function NoteDetailPage({
 }) {
   const { id } = await params;
   const { errore } = await searchParams;
+
+  if (!isSupabaseConfigured()) notFound();
 
   const supabase = await createClient();
   const { data } = await supabase.from("notes").select("*").eq("id", id).maybeSingle();

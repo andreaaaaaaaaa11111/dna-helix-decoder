@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { supabaseAnonKey, supabaseUrl } from "./config";
+import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./config";
 
 const PROTECTED_PREFIXES = ["/dashboard"];
 
@@ -12,6 +12,10 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  // Senza chiavi Supabase il sito resta navigabile in sola lettura: le pagine
+  // private si proteggono comunque da sole (requireProfile → /login).
+  if (!isSupabaseConfigured()) return response;
 
   const supabase = createServerClient(supabaseUrl(), supabaseAnonKey(), {
     cookies: {

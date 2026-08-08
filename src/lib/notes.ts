@@ -1,3 +1,4 @@
+import { MISSING_CONFIG_MESSAGE, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { Note, NoteWithSeller } from "@/lib/types";
 
@@ -31,6 +32,10 @@ export type CatalogFilters = {
 
 /** Appunti pubblicati e visibili nel catalogo. */
 export async function getCatalog(filters: CatalogFilters = {}) {
+  if (!isSupabaseConfigured()) {
+    return { notes: [] as NoteWithSeller[], error: MISSING_CONFIG_MESSAGE };
+  }
+
   const supabase = await createClient();
 
   let query = supabase

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { siteUrl } from "@/lib/supabase/config";
+import {
+  MISSING_CONFIG_MESSAGE,
+  isSupabaseConfigured,
+  siteUrl,
+} from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/types";
 
@@ -23,6 +27,7 @@ export async function signIn(
   const password = String(formData.get("password") ?? "");
   const next = safeNext(formData.get("next"));
 
+  if (!isSupabaseConfigured()) return { error: MISSING_CONFIG_MESSAGE };
   if (!email || !password) {
     return { error: "Inserisci email e password." };
   }
@@ -53,6 +58,7 @@ export async function signUp(
   const university = String(formData.get("university") ?? "").trim();
   const roleRaw = String(formData.get("role") ?? "");
 
+  if (!isSupabaseConfigured()) return { error: MISSING_CONFIG_MESSAGE };
   if (!email || !password || !fullName) {
     return { error: "Nome, email e password sono obbligatori." };
   }
