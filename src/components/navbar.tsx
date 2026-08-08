@@ -9,7 +9,7 @@ export default async function Navbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <nav className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-4">
+      <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-4">
         <Link href="/" className="text-lg font-bold tracking-tight text-brand-700">
           Appunti<span className="text-slate-900">Uni</span>
         </Link>
@@ -21,7 +21,7 @@ export default async function Navbar() {
           Catalogo
         </Link>
 
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {profile ? (
             <>
               <span className="hidden text-xs text-slate-500 sm:inline">

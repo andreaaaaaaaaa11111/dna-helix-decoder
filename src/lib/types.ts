@@ -10,6 +10,26 @@ export type Profile = {
   created_at: string;
 };
 
+export const NOTE_TYPES = [
+  "appunti",
+  "riassunti",
+  "esercizi",
+  "slide",
+  "formulario",
+  "tesi",
+] as const;
+
+export type NoteType = (typeof NOTE_TYPES)[number];
+
+export const NOTE_TYPE_LABEL: Record<NoteType, string> = {
+  appunti: "Appunti di lezione",
+  riassunti: "Riassunti",
+  esercizi: "Esercizi svolti",
+  slide: "Slide",
+  formulario: "Formulario",
+  tesi: "Tesi",
+};
+
 export type Note = {
   id: string;
   seller_id: string;
@@ -17,9 +37,16 @@ export type Note = {
   description: string | null;
   university: string | null;
   course: string | null;
+  professor: string | null;
+  academic_year: string | null;
+  note_type: NoteType;
+  language: string | null;
   pages: number | null;
   price_cents: number;
   file_path: string;
+  file_size: number | null;
+  file_mime: string | null;
+  preview_path: string | null;
   status: NoteStatus;
   reject_reason: string | null;
   created_at: string;
@@ -27,6 +54,8 @@ export type Note = {
 
 export type NoteWithSeller = Note & {
   seller: Pick<Profile, "id" | "full_name" | "university"> | null;
+  sales_count: number;
+  preview_url: string | null;
 };
 
 export type Purchase = {
@@ -55,6 +84,27 @@ export function formatPrice(cents: number) {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
+}
+
+/** Dimensione file leggibile: 1,4 MB invece di 1468006. */
+export function formatFileSize(bytes: number | null) {
+  if (!bytes || bytes <= 0) return null;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(1).replace(".", ",")} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** Estensione mostrata all'utente, ricavata dal tipo MIME o dal nome file. */
+export function formatFileKind(mime: string | null, path?: string) {
+  const byMime: Record<string, string> = {
+    "application/pdf": "PDF",
+    "application/zip": "ZIP",
+    "image/png": "PNG",
+    "image/jpeg": "JPG",
+  };
+  if (mime && byMime[mime]) return byMime[mime];
+  const ext = path?.split(".").pop();
+  return ext && ext.length <= 4 ? ext.toUpperCase() : "File";
 }
 
 export function formatDate(iso: string) {

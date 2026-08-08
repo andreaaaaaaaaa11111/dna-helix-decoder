@@ -14,14 +14,24 @@ admin esistente (il primo si crea da SQL, vedi sotto).
 ## Funzionalità
 
 **Acquirente**
-- Catalogo pubblico con ricerca per titolo/materia/corso, filtro per ateneo e "solo gratis"
+- Catalogo pubblico con ricerca (titolo, materia, corso, docente), filtri per
+  ateneo, tipo di materiale, prezzo massimo e "solo gratis", più ordinamento per
+  data o prezzo
+- Scheda appunto con copertina, tutti i dettagli, copie vendute e appunti
+  correlati dello stesso corso
 - Acquisto di un set di appunti (pagamento simulato in questa versione)
 - Dashboard `/dashboard/acquisti`: libreria degli acquisti, totale speso, download
 - Download tramite **link firmato e temporaneo** (60 secondi): i file non sono mai pubblici
 
 **Venditore**
-- Dashboard `/dashboard/venditore`: annunci, numero di vendite, incasso
-- Upload di nuovi appunti (PDF/ZIP/PNG/JPG, max 20 MB) con titolo, descrizione, ateneo, corso, pagine e prezzo
+- Dashboard `/dashboard/venditore`: annunci, vendite per singolo annuncio, incasso
+- Caricamento guidato in tre passaggi — file, dettagli, prezzo — con anteprima
+  del nome e del peso del file scelto e scorciatoie di prezzo
+- Campi dell'annuncio: tipo di materiale (appunti, riassunti, esercizi, slide,
+  formulario, tesi), corso, ateneo, docente, anno accademico, pagine, lingua,
+  descrizione e **copertina** facoltativa
+- Modifica di prezzo e dettagli dopo la pubblicazione
+  (`/dashboard/venditore/<id>/modifica`)
 - Stato dell'annuncio: in revisione → pubblicato / rifiutato (con motivo)
 - Storico vendite in `/dashboard/venditore/vendite`
 
@@ -50,9 +60,12 @@ controlli lato UI:
   vincolo `unique(note_id, buyer_id)` evita i doppioni.
 - **Storage**: il bucket `notes` è privato. Un venditore può scrivere solo nella
   cartella `<suo-uid>/`, e la lettura è concessa solo a proprietario, acquirente
-  o admin. I download avvengono con URL firmati generati lato server.
+  o admin. I download avvengono con URL firmati generati lato server. Le
+  copertine stanno in un bucket separato e pubblico (`note-previews`): sono
+  immagini pensate per essere viste da chiunque nel catalogo.
 - I dati pubblici dei venditori (nome e ateneo, mai l'email) sono esposti dalla
-  vista `sellers_public`.
+  vista `sellers_public`; il numero di copie vendute passa dalla vista
+  aggregata `note_stats`, che non rivela chi ha comprato.
 
 ---
 
@@ -63,8 +76,10 @@ controlli lato UI:
 1. Crea un progetto su [supabase.com](https://supabase.com).
 2. Apri **SQL Editor → New query**, incolla il contenuto di
    [`supabase/schema.sql`](supabase/schema.sql) ed esegui. Lo script crea
-   tabelle, trigger, policy RLS, la vista pubblica e il bucket privato `notes`
-   (è idempotente: si può rieseguire).
+   tabelle, trigger, policy RLS, le viste pubbliche e i bucket `notes`
+   (privato) e `note-previews` (copertine). Lo script è idempotente: rieseguilo
+   anche per **aggiornare** un database creato con una versione precedente —
+   aggiunge le colonne mancanti senza toccare i dati esistenti.
 3. In **Authentication → URL Configuration** imposta il *Site URL*
    (`http://localhost:3000` in locale, l'URL Vercel in produzione) e aggiungi
    `<site-url>/auth/callback` tra i *Redirect URLs*.

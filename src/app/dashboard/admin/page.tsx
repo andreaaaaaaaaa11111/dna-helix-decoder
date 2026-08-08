@@ -5,8 +5,10 @@ import Stat from "@/components/stat";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  NOTE_TYPE_LABEL,
   STATUS_LABEL,
   formatDate,
+  formatFileSize,
   formatPrice,
   type Note,
   type NoteStatus,
@@ -86,9 +88,18 @@ export default async function AdminDashboard() {
                     {STATUS_LABEL[note.status]}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  {formatPrice(note.price_cents)} · {note.university ?? "ateneo n.d."} ·{" "}
-                  {formatDate(note.created_at)}
+                <p className="mt-1 text-xs text-slate-500">
+                  {[
+                    formatPrice(note.price_cents),
+                    NOTE_TYPE_LABEL[note.note_type] ?? "Appunti",
+                    note.course,
+                    note.university ?? "ateneo n.d.",
+                    note.pages ? `${note.pages} pagine` : null,
+                    formatFileSize(note.file_size),
+                    formatDate(note.created_at),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
 

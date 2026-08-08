@@ -4,7 +4,14 @@ import { downloadNote } from "@/app/actions/purchases";
 import Stat from "@/components/stat";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatPrice, type Note, type Purchase } from "@/lib/types";
+import {
+  NOTE_TYPE_LABEL,
+  formatDate,
+  formatFileKind,
+  formatPrice,
+  type Note,
+  type Purchase,
+} from "@/lib/types";
 
 export const metadata = { title: "I miei acquisti — AppuntiUni" };
 
@@ -67,10 +74,17 @@ export default async function BuyerDashboard({
                 <p className="truncate font-medium">
                   {purchase.note?.title ?? "Appunto rimosso"}
                 </p>
-                <p className="text-xs text-slate-500">
-                  {purchase.note?.course ? `${purchase.note.course} · ` : ""}
-                  Acquistato il {formatDate(purchase.created_at)} ·{" "}
-                  {formatPrice(purchase.amount_cents)}
+                <p className="mt-1 text-xs text-slate-500">
+                  {[
+                    purchase.note ? NOTE_TYPE_LABEL[purchase.note.note_type] : null,
+                    purchase.note?.course,
+                    purchase.note?.pages ? `${purchase.note.pages} pagine` : null,
+                    purchase.note ? formatFileKind(purchase.note.file_mime, purchase.note.file_path) : null,
+                    `acquistato il ${formatDate(purchase.created_at)}`,
+                    formatPrice(purchase.amount_cents),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
 

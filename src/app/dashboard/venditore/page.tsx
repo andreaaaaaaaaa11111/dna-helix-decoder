@@ -6,8 +6,10 @@ import Stat from "@/components/stat";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  NOTE_TYPE_LABEL,
   STATUS_LABEL,
   formatDate,
+  formatFileSize,
   formatPrice,
   type Note,
   type NoteStatus,
@@ -44,6 +46,12 @@ export default async function SellerDashboard({
   const sales = (salesData ?? []).filter((s) => noteIds.has(s.note_id));
   const revenue = sales.reduce((sum, s) => sum + s.amount_cents, 0);
 
+  // Vendite per singolo annuncio, mostrate accanto a ogni riga.
+  const salesByNote = sales.reduce((map, sale) => {
+    map.set(sale.note_id, (map.get(sale.note_id) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
+
   return (
     <div className="flex flex-col gap-6">
       {params.errore && (
@@ -73,26 +81,37 @@ export default async function SellerDashboard({
           </p>
         ) : (
           notes.map((note) => (
-            <div key={note.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+            <div key={note.id} className="flex flex-wrap items-center gap-4 px-5 py-5">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href={`/appunti/${note.id}`}
-                    className="truncate font-medium hover:underline"
-                  >
+                  <Link href={`/appunti/${note.id}`} className="font-semibold hover:underline">
                     {note.title}
                   </Link>
                   <span className={`badge ${STATUS_STYLE[note.status]}`}>
                     {STATUS_LABEL[note.status]}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  {formatPrice(note.price_cents)} · caricato il {formatDate(note.created_at)}
-                  {note.status === "rejected" && note.reject_reason
-                    ? ` · motivo: ${note.reject_reason}`
-                    : ""}
+                <p className="mt-1 text-xs text-slate-500">
+                  {[
+                    formatPrice(note.price_cents),
+                    NOTE_TYPE_LABEL[note.note_type] ?? "Appunti",
+                    note.course,
+                    note.pages ? `${note.pages} pagine` : null,
+                    formatFileSize(note.file_size),
+                    `${salesByNote.get(note.id) ?? 0} vendite`,
+                    `caricato il ${formatDate(note.created_at)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
+                {note.status === "rejected" && note.reject_reason && (
+                  <p className="mt-1 text-xs text-red-600">Motivo: {note.reject_reason}</p>
+                )}
               </div>
+
+              <Link href={`/dashboard/venditore/${note.id}/modifica`} className="btn-secondary">
+                Modifica
+              </Link>
 
               <form action={downloadNote}>
                 <input type="hidden" name="note_id" value={note.id} />

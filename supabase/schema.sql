@@ -47,8 +47,31 @@ create table if not exists public.notes (
   created_at   timestamptz not null default now()
 );
 
+-- Dettagli aggiuntivi dell'annuncio. Sono in `alter` separati così questo file
+-- resta rieseguibile e aggiorna anche i database creati con la versione
+-- precedente dello schema.
+alter table public.notes add column if not exists note_type text not null default 'appunti';
+alter table public.notes add column if not exists academic_year text;
+alter table public.notes add column if not exists professor text;
+alter table public.notes add column if not exists language text not null default 'Italiano';
+alter table public.notes add column if not exists file_size bigint;
+alter table public.notes add column if not exists file_mime text;
+alter table public.notes add column if not exists preview_path text;  -- copertina pubblica
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'notes_note_type_check'
+  ) then
+    alter table public.notes add constraint notes_note_type_check
+      check (note_type in ('appunti', 'riassunti', 'esercizi', 'slide', 'formulario', 'tesi'));
+  end if;
+end $$;
+
 create index if not exists notes_seller_id_idx on public.notes (seller_id);
 create index if not exists notes_status_idx on public.notes (status);
+create index if not exists notes_university_idx on public.notes (university);
+create index if not exists notes_price_idx on public.notes (price_cents);
 
 -- Acquisti. Un utente può comprare lo stesso appunto una sola volta.
 create table if not exists public.purchases (
@@ -275,12 +298,49 @@ with (security_invoker = off) as
 
 grant select on public.sellers_public to anon, authenticated;
 
+-- Numero di vendite per annuncio. `purchases` è chiusa dalle policy, ma il
+-- totale (senza sapere chi ha comprato) è un'informazione pubblica utile nel
+-- catalogo, quindi passa da questa vista aggregata.
+create or replace view public.note_stats
+with (security_invoker = off) as
+  select n.id as note_id, count(p.id) as sales_count
+  from public.notes n
+  left join public.purchases p on p.note_id = n.id
+  where n.status = 'approved'
+  group by n.id;
+
+grant select on public.note_stats to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 5. Storage: bucket privato "notes"
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('notes', 'notes', false)
 on conflict (id) do nothing;
+
+-- Bucket pubblico per le sole copertine: sono immagini di anteprima pensate
+-- per essere viste da chiunque nel catalogo, il file vero resta nel bucket
+-- privato "notes".
+insert into storage.buckets (id, name, public)
+values ('note-previews', 'note-previews', true)
+on conflict (id) do nothing;
+
+drop policy if exists previews_upload on storage.objects;
+create policy previews_upload on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'note-previews'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and public.current_role() in ('seller', 'admin')
+  );
+
+drop policy if exists previews_delete on storage.objects;
+create policy previews_delete on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'note-previews'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+  );
 
 -- Il venditore carica solo dentro la cartella con il proprio uid: <uid>/file.pdf
 drop policy if exists notes_upload on storage.objects;
