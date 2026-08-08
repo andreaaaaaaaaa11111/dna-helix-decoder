@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { deleteNote } from "@/app/actions/notes";
 import { downloadNote } from "@/app/actions/purchases";
+import Stat from "@/components/stat";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -49,19 +50,10 @@ export default async function SellerDashboard({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{params.errore}</p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Appunti caricati</p>
-          <p className="text-3xl font-bold">{notes.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Vendite totali</p>
-          <p className="text-3xl font-bold">{sales.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Incasso</p>
-          <p className="text-3xl font-bold">{formatPrice(revenue)}</p>
-        </div>
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Stat label="Appunti caricati" value={notes.length} />
+        <Stat label="Vendite totali" value={sales.length} />
+        <Stat label="Incasso" value={formatPrice(revenue)} />
       </div>
 
       <div className="flex justify-end">

@@ -34,17 +34,17 @@ export default function RegisterForm() {
   const [role, setRole] = useState<string>("buyer");
 
   return (
-    <form action={formAction} className="card flex flex-col gap-5 p-6">
+    <form action={formAction} className="card flex flex-col gap-7 p-7">
       <fieldset>
         <legend className="label">Tipo di account</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {ROLES.map((option) => (
             <label
               key={option.value}
-              className={`cursor-pointer rounded-xl border p-4 transition ${
+              className={`cursor-pointer rounded-2xl border p-5 transition ${
                 role === option.value
-                  ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
-                  : "border-slate-300 hover:border-slate-400"
+                  ? "border-brand-500 bg-brand-50 ring-4 ring-brand-100"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               <input
@@ -55,10 +55,8 @@ export default function RegisterForm() {
                 onChange={(e) => setRole(e.target.value)}
                 className="sr-only"
               />
-              <span className="block text-sm font-semibold text-slate-900">
-                {option.title}
-              </span>
-              <span className="mt-1 block text-xs text-slate-600">
+              <span className="block font-semibold text-slate-900">{option.title}</span>
+              <span className="mt-1.5 block text-xs text-slate-600">
                 {option.description}
               </span>
             </label>

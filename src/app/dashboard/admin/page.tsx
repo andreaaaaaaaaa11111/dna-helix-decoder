@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { deleteNote, setNoteStatus } from "@/app/actions/notes";
+import Stat from "@/components/stat";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -46,12 +47,9 @@ export default async function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="card p-5">
-            <p className="text-sm text-slate-500">{stat.label}</p>
-            <p className="text-3xl font-bold">{stat.value}</p>
-          </div>
+          <Stat key={stat.label} label={stat.label} value={stat.value} />
         ))}
       </div>
 

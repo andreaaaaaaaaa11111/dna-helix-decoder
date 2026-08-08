@@ -18,7 +18,7 @@ export default function LoginForm({ next }: { next: string }) {
   const [state, formAction] = useActionState<AuthState, FormData>(signIn, {});
 
   return (
-    <form action={formAction} className="card flex flex-col gap-4 p-6">
+    <form action={formAction} className="card flex flex-col gap-5 p-7">
       <input type="hidden" name="next" value={next} />
 
       <div>

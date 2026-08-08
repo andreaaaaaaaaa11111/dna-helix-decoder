@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { downloadNote } from "@/app/actions/purchases";
+import Stat from "@/components/stat";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatPrice, type Note, type Purchase } from "@/lib/types";
@@ -38,15 +39,9 @@ export default async function BuyerDashboard({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{params.errore}</p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Appunti acquistati</p>
-          <p className="text-3xl font-bold">{purchases.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Totale speso</p>
-          <p className="text-3xl font-bold">{formatPrice(totalSpent)}</p>
-        </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Stat label="Appunti acquistati" value={purchases.length} />
+        <Stat label="Totale speso" value={formatPrice(totalSpent)} />
       </div>
 
       <section className="card divide-y divide-slate-200">

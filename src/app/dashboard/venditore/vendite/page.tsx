@@ -1,3 +1,4 @@
+import Stat from "@/components/stat";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatPrice, type Note, type Purchase } from "@/lib/types";
@@ -24,15 +25,9 @@ export default async function SalesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Vendite</p>
-          <p className="text-3xl font-bold">{sales.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Incasso lordo</p>
-          <p className="text-3xl font-bold">{formatPrice(revenue)}</p>
-        </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Stat label="Vendite" value={sales.length} />
+        <Stat label="Incasso lordo" value={formatPrice(revenue)} />
       </div>
 
       <section className="card divide-y divide-slate-200">

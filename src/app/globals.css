@@ -1,16 +1,65 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Identità visiva: quaderno e penna.
+   Fondo carta leggermente freddo, inchiostro blu-notte, blu penna per le
+   azioni e giallo evidenziatore come unico accento acceso.
+   Ridefiniamo qui anche la scala "slate" di Tailwind: tutta l'interfaccia usa
+   quei nomi, così il tema resta coerente senza duplicare classi.
+--------------------------------------------------------------------------- */
 @theme {
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #d9e6ff;
-  --color-brand-200: #bcd3ff;
-  --color-brand-300: #8eb6ff;
-  --color-brand-400: #588fff;
-  --color-brand-500: #3168ff;
-  --color-brand-600: #1c46f5;
-  --color-brand-700: #1734e1;
-  --color-brand-800: #192db6;
-  --color-brand-900: #1a2d8f;
+  /* neutri "carta e inchiostro" */
+  --color-slate-50: #f6f7fb;
+  --color-slate-100: #edeff6;
+  --color-slate-200: #dee2ee;
+  --color-slate-300: #c3cadd;
+  --color-slate-400: #98a1bb;
+  --color-slate-500: #6f7b99;
+  --color-slate-600: #55617e;
+  --color-slate-700: #3d4863;
+  --color-slate-800: #26304a;
+  --color-slate-900: #141d33;
+  --color-slate-950: #0b1222;
+
+  /* blu penna */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #dee5ff;
+  --color-brand-200: #c2cffe;
+  --color-brand-300: #97aefc;
+  --color-brand-400: #6b86f7;
+  --color-brand-500: #4a63ea;
+  --color-brand-600: #3346d4;
+  --color-brand-700: #2836ab;
+  --color-brand-800: #253189;
+  --color-brand-900: #1f2a6d;
+
+  /* giallo evidenziatore */
+  --color-marker-200: #fff1a8;
+  --color-marker-300: #ffe66d;
+  --color-marker-400: #ffd93d;
+
+  /* tipografia: più corpo e più interlinea, niente testo schiacciato */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.55;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.65;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.45;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 1.22;
+  --text-4xl: 2.625rem;
+  --text-4xl--line-height: 1.14;
+  --text-5xl: 3.25rem;
+  --text-5xl--line-height: 1.08;
+
+  --shadow-card: 0 1px 2px rgb(20 29 51 / 0.04), 0 12px 28px -20px rgb(20 29 51 / 0.28);
+  --shadow-lift: 0 2px 6px rgb(20 29 51 / 0.06), 0 22px 40px -24px rgb(20 29 51 / 0.35);
 }
 
 :root {
@@ -18,39 +67,69 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-50 text-slate-800 antialiased;
+  letter-spacing: 0.005em;
 }
 
-/* Componenti riusabili. In Tailwind v4 `@utility` permette di comporli con
-   @apply e con le varianti (hover:, sm:, …). */
+h1,
+h2,
+h3 {
+  @apply text-slate-900;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+/* Carta a quadretti: sfondo discreto per le sezioni di apertura. */
+@utility paper-grid {
+  background-color: var(--color-slate-50);
+  background-image:
+    linear-gradient(to right, rgb(20 29 51 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(20 29 51 / 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Tratto di evidenziatore dietro una parola. */
+@utility marker {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 12%,
+    var(--color-marker-300) 12%,
+    var(--color-marker-200) 88%,
+    transparent 88%
+  );
+  padding-inline: 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold leading-none transition duration-150 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 @utility btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  @apply btn bg-brand-600 text-white shadow-sm hover:-translate-y-px hover:bg-brand-700 hover:shadow-md;
 }
 
 @utility btn-secondary {
-  @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+  @apply btn border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-100;
 }
 
 @utility btn-danger {
-  @apply btn bg-red-600 text-white hover:bg-red-700;
+  @apply btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
 }
 
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  @apply rounded-2xl border border-slate-200 bg-white shadow-card;
 }
 
 @utility label {
-  @apply mb-1 block text-sm font-medium text-slate-700;
+  @apply mb-1.5 block text-xs font-semibold tracking-wide text-slate-600 uppercase;
 }
 
 @utility input {
-  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+  @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
 }
 
 @utility badge {
-  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  @apply inline-flex items-center rounded-full px-3 py-1 text-xs leading-none font-semibold;
 }
