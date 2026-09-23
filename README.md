@@ -11,6 +11,21 @@ admin esistente (il primo si crea da SQL, vedi sotto).
 
 ---
 
+## Vedere il sito subito, senza configurare nulla
+
+Il progetto include una **modalità dimostrativa** su `/demo`: le schermate vere
+dell'applicazione (catalogo, dashboard acquirente, venditore, admin, modulo di
+caricamento) riempite con dati di esempio e pulsanti disattivati. Funziona anche
+senza Supabase, quindi un deploy appena fatto è già navigabile.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fandreaaaaaaaaa11111%2Fdna-helix-decoder%2Ftree%2Fclaude%2Funiversity-notes-marketplace-jc9lw1)
+
+Dopo il deploy apri `https://<tuo-progetto>.vercel.app/demo`. Per usare il sito
+davvero — registrazione, caricamento, acquisti — aggiungi le variabili Supabase
+come spiegato sotto.
+
+---
+
 ## Funzionalità
 
 **Acquirente**
